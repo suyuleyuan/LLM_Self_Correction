@@ -23,7 +23,7 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 import nltk
 from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction
-from rouge import Rouge
+from rouge import Rouge # 计算文本摘要评估指标
 import radon.complexity as radon_complexity
 from sympy import simplify, SympifyError
 from sympy.parsing.sympy_parser import parse_expr

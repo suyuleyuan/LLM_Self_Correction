@@ -60,10 +60,10 @@ def set_seed(seed: int) -> None:
         logger.info(f"Seed set to {seed}.")
     except Exception as e:
         logger.error(f"Error setting seed: {e}")
-        raise RuntimeError("Failed to set seed.") from e
+        raise RuntimeError("Failed to set seed.") from e # 保留原始异常上下文
 
 
-@dataclass
+@dataclass # 简化类定义
 class Config:
     """
     Configuration dataclass for training parameters.
@@ -270,7 +270,7 @@ class AdvancedModel(nn.Module):
             raise RuntimeError("Text generation failed.") from e
 
 
-class RewardsDict(TypedDict):
+class RewardsDict(TypedDict): # 直接用字典形式赋值
     """
     TypedDict for rewards and related metrics.
     """

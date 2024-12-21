@@ -16,6 +16,7 @@ from torch.utils.data import DataLoader, Dataset
 from transformers import (
     LlamaForCausalLM,
     LlamaTokenizer,
+    AutoTokenizer,
     get_linear_schedule_with_warmup,
 )
 import numpy as np
@@ -28,6 +29,9 @@ import radon.complexity as radon_complexity
 from sympy import simplify, SympifyError
 from sympy.parsing.sympy_parser import parse_expr
 import ast
+
+import re
+from peft import LoraConfig, get_peft_model
 
 # Initialize NLTK
 try:
@@ -74,12 +78,12 @@ class Config:
     learning_rate: float = 1e-5
     batch_size: int = 1
     max_seq_len: int = 1024
-    num_epochs_stage_one: int = 1
-    num_epochs_stage_two: int = 1
+    num_epochs_stage_one: int = 2
+    num_epochs_stage_two: int = 2
     device: torch.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     seed: int = 42
     task: str = 'MATH'
-    model_variant: str = 'decapoda-research/llama-7b-hf'
+    model_variant: str = '/root/autodl-tmp/model/meta-llama/Llama-3.2-1B-Instruct'
     ablation: str = 'none'
     data_path: str = './data'
     output_dir: str = './outputs'
@@ -96,6 +100,7 @@ class Config:
     compute_bleu: bool = True
     compute_rouge: bool = True
     compute_cyclomatic_complexity: bool = True
+    use_lora: bool = False
 
     def validate(self) -> None:
         """
@@ -190,10 +195,11 @@ class AdvancedModel(nn.Module):
     Advanced model wrapper with tokenizer and generation capabilities.
     """
 
-    def __init__(self, model_name: str, device: torch.device):
+    def __init__(self, model_name: str, device: torch.device, use_lora: bool = False):
         super().__init__()
+        self.use_lora = use_lora
         try:
-            self.tokenizer = LlamaTokenizer.from_pretrained(model_name)
+            self.tokenizer = AutoTokenizer.from_pretrained(model_name)
             logger.info(f"Tokenizer loaded for {model_name}.")
         except Exception as e:
             logger.error(f"Error loading tokenizer for {model_name}: {e}")
@@ -216,6 +222,42 @@ class AdvancedModel(nn.Module):
             raise RuntimeError("Failed to add pad token or resize embeddings.") from e
 
         self.device = device
+        
+        # if use LoRA
+        if self.use_lora:
+            try:
+                lora_config = self._get_lora_config()
+                self.model = get_peft_model(self.model, lora_config) 
+                self.model.print_trainable_parameters()
+                logger.info("LoRA applied to the model.")
+            except Exception as e:
+                logger.error(f"Error applying LoRA to the model: {e}")
+                raise RuntimeError("Failed to apply LoRA.") from e
+
+        else:
+            for param in self.model.parameters():
+                param.requires_grad = True
+            logger.info("LoRA not enabled. Model parameters are trainable.")
+
+    def _get_lora_config(self, r: int = 8, alpha: int = 32, dropout: float = 0.1) -> LoraConfig:
+        """
+        Create and return a LoRA configuration.
+
+        Args:
+            r (int): Low-rank dimension.
+            alpha (int): Scaling factor.
+            dropout (float): Dropout probability.
+
+        Returns:
+            LoraConfig: Configuration for LoRA.
+        """
+        return LoraConfig(
+            task_type="CAUSAL_LM",
+            inference_mode=False,
+            r=r,
+            lora_alpha=alpha,
+            lora_dropout=dropout
+        )
 
     def forward(self, input_ids: torch.Tensor, attention_mask: torch.Tensor) -> torch.Tensor:
         """
@@ -346,11 +388,23 @@ class SCoReTrainer:
         reward = 0.0
         bleu = 0.0
         rouge = {}
+        pattern = r"The final answer is\s*[:]? (.*?)(?:\s*\.$|\s*$)"
 
+        generated_math = re.search(pattern, generated).group(1) if re.search(pattern, generated) else generated
+        correct_math = re.search(pattern, correct).group(1) if re.search(pattern, correct) else correct
+
+        def clean_math_expression(expr: str) -> str:
+            expr = re.sub(r"\\boxed\{(.*?)\}", r"\1", expr)  # Remove \boxed{}
+            expr = re.sub(r"\$(.*?)\$", r"\1", expr)
+            return expr.strip()  # Remove extra spaces
+                
+        generated_math = clean_math_expression(generated_math)
+        correct_math = clean_math_expression(correct_math)
+
+        #import pdb; pdb.set_trace()
         # Compute mathematical correctness
         try:
-            eq = simplify(parse_expr(generated) - parse_expr(correct)) == 0
-            reward = 1.0 if eq else 0.0
+            reward = 1.0 if re.sub(r'\s+', '', generated_math.strip()) == re.sub(r'\s+', '', correct_math.strip()) else 0.0
             logger.debug(f"Math reward: {reward}")
         except (SympifyError, TypeError) as e:
             logger.warning(f"SympifyError or TypeError during math reward computation: {e}")
@@ -531,7 +585,7 @@ class SCoReTrainer:
 
     def prepare_batch(
         self,
-        batch: List[Dict[str, Any]]
+        batch: Dict[str, List[str]]
     ) -> Tuple[List[str], List[str], Optional[List[str]]]:
         """
         Prepare a batch of data for processing.
@@ -544,8 +598,10 @@ class SCoReTrainer:
         """
         try:
             if self.config.task == 'MATH':
-                inputs = [item['question'] for item in batch]
-                correct = [item['answer'] for item in batch]
+                #import pdb; pdb.set_trace()
+                #inputs = batch['question']
+                inputs = ["Only provide the answer, no explanation: " + question for question in batch['question']]
+                correct = batch['answer']
                 tests = None
             elif self.config.task == 'CODE':
                 inputs = [item.get('text', item.get('prompt', '')) for item in batch]
@@ -608,7 +664,9 @@ class SCoReTrainer:
                         ref_logits = self.ref_model(encodings['input_ids'], encodings['attention_mask'])
                     kl_loss = self.compute_kl_divergence(logits, ref_logits)
                     generated_ids = self.model.generate_text(encodings, max_length=self.config.max_seq_len)
+                    
                     generated = self.model.tokenizer.batch_decode(generated_ids, skip_special_tokens=True)
+                    
                     rewards_dict = self.compute_rewards(generated, correct, tests)
                     rewards = rewards_dict['rewards']
                     loss = -rewards.mean() + self.config.beta_2 * kl_loss
@@ -770,7 +828,7 @@ class SCoReTrainer:
 
                     try:
                         # Generate first attempt
-                        first_ids = self.model.generate_text(encodings, max_length=self.config.max_seq_len, temperature=0.0)
+                        first_ids = self.model.generate_text(encodings, max_length=self.config.max_seq_len)
                         first = self.model.tokenizer.batch_decode(first_ids, skip_special_tokens=True)
                         # Generate second attempt based on first
                         second_inputs = [
@@ -784,7 +842,7 @@ class SCoReTrainer:
                             truncation=True,
                             max_length=self.config.max_seq_len
                         ).to(self.config.device)
-                        second_ids = self.model.generate_text(second_encodings, max_length=self.config.max_seq_len, temperature=0.0)
+                        second_ids = self.model.generate_text(second_encodings, max_length=self.config.max_seq_len)
                         second = self.model.tokenizer.batch_decode(second_ids, skip_special_tokens=True)
                         # Compute rewards
                         rewards_first = self.compute_rewards(first, correct, tests)['rewards']
@@ -849,7 +907,6 @@ class SCoReTrainer:
                 if self.config.compute_cyclomatic_complexity and cyclomatic_complexities:
                     avg_cyclomatic = np.mean(cyclomatic_complexities)
                     logger.info(f"Average Cyclomatic Complexity: {avg_cyclomatic:.4f}")
-
             self.plot_reward_history()
             self.plot_edit_distance_ratios()
 
@@ -861,6 +918,7 @@ class SCoReTrainer:
         """
         Plot and save the training reward history.
         """
+        import pdb; pdb.set_trace()
         try:
             plt.figure(figsize=(10, 5))
             plt.plot(self.reward_history, label='Average Reward')
@@ -880,6 +938,7 @@ class SCoReTrainer:
         """
         Plot and save the histogram of edit distance ratios.
         """
+        import pdb; pdb.set_trace()
         try:
             plt.figure(figsize=(10, 5))
             plt.hist(self.edit_distance_ratios, bins=50, color='skyblue', edgecolor='black')
@@ -901,7 +960,7 @@ def main():
     """
     parser = argparse.ArgumentParser(description="Advanced SCoRe System with Enhanced Features")
     parser.add_argument('--task', type=str, default='MATH', choices=['MATH', 'CODE'], help="Task type: MATH or CODE")
-    parser.add_argument('--model_variant', type=str, default='decapoda-research/llama-7b-hf', help="Model variant to use")
+    parser.add_argument('--model_variant', type=str, default='/root/autodl-tmp/model/meta-llama/Llama-3.2-1B-Instruct', help="Model variant to use")
     parser.add_argument('--ablation', type=str, default='none', help="Ablation setting")
     parser.add_argument('--data_path', type=str, default='./data', help="Path to the data directory")
     parser.add_argument('--output_dir', type=str, default='./outputs', help="Directory to save outputs")
@@ -909,6 +968,7 @@ def main():
     parser.add_argument('--no_bleu', action='store_false', dest='compute_bleu', help="Disable BLEU score computation")
     parser.add_argument('--no_rouge', action='store_false', dest='compute_rouge', help="Disable ROUGE score computation")
     parser.add_argument('--no_cyclomatic', action='store_false', dest='compute_cyclomatic_complexity', help="Disable cyclomatic complexity computation")
+    parser.add_argument('--use_lora', action='store_true', help="Enable LoRA for fine-tuning")
     args = parser.parse_args()
 
     # Initialize configuration
@@ -921,7 +981,8 @@ def main():
         mixed_precision=args.mixed_precision,
         compute_bleu=args.compute_bleu,
         compute_rouge=args.compute_rouge,
-        compute_cyclomatic_complexity=args.compute_cyclomatic_complexity
+        compute_cyclomatic_complexity=args.compute_cyclomatic_complexity,
+        use_lora=args.use_lora
     )
 
     try:
@@ -982,8 +1043,8 @@ def main():
 
     # Initialize models
     try:
-        model = AdvancedModel(config.model_variant, config.device)
-        ref_model = AdvancedModel(config.model_variant, config.device)
+        model = AdvancedModel(config.model_variant, config.device, config.use_lora)
+        ref_model = AdvancedModel(config.model_variant, config.device, use_lora=False)
         ref_model.model.eval()
         for param in ref_model.model.parameters():
             param.requires_grad = False

@@ -1,0 +1,122 @@
+[
+  {
+    "question": "What is the derivative of 3x^2?",
+    "answer": "The derivative of 3x^2 with respect to x is 6x. The final answer is 6x."
+  },
+  {
+    "question": "Solve for x: 5x - 7 = 13",
+    "answer": "Add 7 to both sides: 5x = 20. Divide both sides by 5: x = 4. The final answer is x = 4."
+  },
+  {
+    "question": "What is the integral of 4x dx?",
+    "answer": "The integral of 4x dx is 2x^2 + C, where C is the constant of integration. The final answer is 2x^2 + C."
+  },
+  {
+    "question": "Find the slope of the line y = -2x + 5",
+    "answer": "The slope of the line y = -2x + 5 is -2. The final answer is -2."
+  },
+  {
+    "question": "What is the value of e to 4 decimal places?",
+    "answer": "The value of e to 4 decimal places is 2.7183. The final answer is 2.7183."
+  },
+  {
+    "question": "Simplify: (x^2 - 4) / (x - 2)",
+    "answer": "Factoring the numerator: (x - 2)(x + 2) / (x - 2) = x + 2. The final answer is x + 2."
+  },
+  {
+    "question": "What is the area of a triangle with base 8 and height 6?",
+    "answer": "The area of the triangle is 1/2 * base * height = 1/2 * 8 * 6 = 24 square units. The final answer is 24 square units."
+  },
+  {
+    "question": "Solve the system of equations: 3x + 2y = 12, x - y = 3",
+    "answer": "Using substitution: x = y + 3, substitute into the first equation to get y = 2 and x = 5. The final answer is y = 2 and x = 5."
+  },
+  {
+    "question": "What is the domain of f(x) = 1/(x-1)?",
+    "answer": "The domain is all real numbers except x = 1, or (-\u221e, 1) U (1, \u221e). The final answer is (-\u221e, 1) U (1, \u221e)."
+  },
+  {
+    "question": "Find the sum of the first 10 terms of the arithmetic sequence: 2, 5, 8, ...",
+    "answer": "The sum is given by S = n/2 * (a + l). With n=10, a=2, l=29, S=10/2 * (2+29) = 155. The final answer is 155."
+  },
+  {
+    "question": "What is the derivative of sin(x)?",
+    "answer": "The derivative of sin(x) with respect to x is cos(x). The final answer is cos(x)."
+  },
+  {
+    "question": "Solve for x: x^2 - 4 = 0",
+    "answer": "Factoring gives (x-2)(x+2)=0, so x = 2 or x = -2. The final answer is x = 2 or x = -2."
+  },
+  {
+    "question": "What is the integral of cos(x) dx?",
+    "answer": "The integral of cos(x) dx is sin(x) + C, where C is the constant of integration. The final answer is sin(x) + C."
+  },
+  {
+    "question": "What is the circumference of a circle with radius 7?",
+    "answer": "The circumference is given by 2\u03c0r. With r=7, the circumference is 14\u03c0 or approximately 43.98. The final answer is 43.98."
+  },
+  {
+    "question": "Simplify: (x^3 - x) / x",
+    "answer": "Factoring the numerator: x(x^2 - 1) / x = x^2 - 1. The final answer is x^2 - 1."
+  },
+  {
+    "question": "What is the hypotenuse of a right triangle with legs 3 and 4?",
+    "answer": "Using the Pythagorean theorem: sqrt(3^2 + 4^2) = sqrt(9 + 16) = 5. The final answer is 5."
+  },
+  {
+    "question": "Solve the system of equations: x + 2y = 7, 3x - y = 4",
+    "answer": "Using substitution: y = (7-x)/2, substitute into the second equation to get x = 2 and y = 2.5. The final answer is x = 2 and y = 2.5."
+  },
+  {
+    "question": "What is the domain of f(x) = ln(x)?",
+    "answer": "The domain is all positive real numbers, or (0, \u221e). The final answer is (0, \u221e)."
+  },
+  {
+    "question": "Find the sum of the series: 1 + 1/3 + 1/9 + 1/27 + ...",
+    "answer": "This is a geometric series with first term a = 1 and common ratio r = 1/3. The sum to infinity is given by a/(1-r) = 1/(1-1/3) = 3/2. The final answer is 3/2."
+  },
+  {
+    "question": "What is the derivative of e^x?",
+    "answer": "The derivative of e^x with respect to x is e^x. The final answer is e^x."
+  },
+  {
+    "question": "Solve for x: 3x + 2 = 11",
+    "answer": "Subtract 2 from both sides: 3x = 9. Divide by 3: x = 3. The final answer is x = 3."
+  },
+  {
+    "question": "What is the integral of 1/x dx?",
+    "answer": "The integral of 1/x dx is ln|x| + C, where C is the constant of integration. The final answer is ln|x| + C."
+  },
+  {
+    "question": "What is the area of a rectangle with length 10 and width 4?",
+    "answer": "The area of the rectangle is length * width = 10 * 4 = 40 square units. The final answer is x + 2. 40 square units."
+  },
+  {
+    "question": "Simplify: (2x + 4) / 2",
+    "answer": "Factoring the numerator: 2(x + 2) / 2 = x + 2. The final answer is x + 2."
+  },
+  {
+    "question": "What is the volume of a sphere with radius 3?",
+    "answer": "The volume of the sphere is given by (4/3)\u03c0r^3. With r=3, the volume is (4/3)\u03c0(27) = 36\u03c0 or approximately 113.1 cubic units. The final answer is 113.1 cubic units."
+  },
+  {
+    "question": "Solve the quadratic equation: x^2 + 5x + 6 = 0",
+    "answer": "Factoring gives (x+2)(x+3)=0, so x = -2 or x = -3. The final answer is x = -2 or x = -3."
+  },
+  {
+    "question": "What is the derivative of tan(x)?",
+    "answer": "The derivative of tan(x) with respect to x is sec^2(x). The final answer is sec^2(x)."
+  },
+  {
+    "question": "What is the area of a circle with diameter 10?",
+    "answer": "The radius is 5. The area is \u03c0r^2 = \u03c0(5^2) = 25\u03c0 or approximately 78.54 square units. The final answer is 78.54 square units."
+  },
+  {
+    "question": "What is the slope of the line passing through points (1, 2) and (3, 6)?",
+    "answer": "The slope is (y2-y1)/(x2-x1) = (6-2)/(3-1) = 4/2 = 2. The final answer is 2."
+  },
+  {
+    "question": "Find the sum of the angles in a triangle.",
+    "answer": "The sum of the angles in any triangle is 180 degrees. The final answer is 180 degrees."
+  }
+]
